@@ -1,9 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -11,60 +11,33 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  bool isChef = false;
   File? _profileImage;
-  final TextEditingController _nameController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _loadProfileData();
-  }
-
-  Future<void> _loadProfileData() async {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      DocumentSnapshot userData = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-      _nameController.text = userData['name'];
-      isChef = userData['isChef'];
-    }
-  }
+  String? _profileImageUrl;
+  final User? user = FirebaseAuth.instance.currentUser;
 
   Future<void> _pickProfileImage() async {
     final pickedFile =
         await ImagePicker().pickImage(source: ImageSource.gallery);
-    setState(() {
-      if (pickedFile != null) {
+    if (pickedFile != null) {
+      setState(() {
         _profileImage = File(pickedFile.path);
-      }
-    });
+      });
+    }
   }
 
-  Future<void> _updateProfile() async {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      String? imageUrl;
-      if (_profileImage != null) {
-        final ref = FirebaseStorage.instance
-            .ref()
-            .child('profile_images')
-            .child(user.uid + '.jpg');
-        await ref.putFile(_profileImage!);
-        imageUrl = await ref.getDownloadURL();
-      }
-
+  Future<void> _uploadProfileImage() async {
+    if (_profileImage != null) {
+      final storageRef = FirebaseStorage.instance.ref();
+      final imagesRef = storageRef.child('profile_pictures/${user!.uid}.jpg');
+      await imagesRef.putFile(_profileImage!);
+      _profileImageUrl = await imagesRef.getDownloadURL();
       await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
+          .collection('chefs')
+          .doc(user!.uid)
           .update({
-        'name': _nameController.text,
-        'profileImageUrl': imageUrl,
+        'profileImageUrl': _profileImageUrl,
       });
-
-      Navigator.pop(context);
+      setState(() {});
     }
   }
 
@@ -74,45 +47,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       appBar: AppBar(
         title: Text('Profile'),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+      body: Center(
         child: Column(
-          children: <Widget>[
-            TextField(
-              controller: _nameController,
-              decoration: InputDecoration(labelText: 'Full Name'),
-            ),
-            SizedBox(height: 20),
+          children: [
+            _profileImageUrl != null
+                ? Image.network(_profileImageUrl!, height: 150)
+                : Icon(Icons.account_circle, size: 150),
             ElevatedButton(
-              child: Text('Pick Profile Image'),
               onPressed: _pickProfileImage,
+              child: Text('Pick Profile Image'),
             ),
-            SizedBox(height: 20),
             ElevatedButton(
-              child: Text('Update Profile'),
-              onPressed: _updateProfile,
-            ),
-            SizedBox(height: 20),
-            isChef
-                ? ElevatedButton(
-                    child: Text('Switch to Client'),
-                    onPressed: () {
-                      Navigator.pushReplacementNamed(context, '/home');
-                    },
-                  )
-                : ElevatedButton(
-                    child: Text('Switch to Chef'),
-                    onPressed: () {
-                      Navigator.pushReplacementNamed(context, '/chef_home');
-                    },
-                  ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              child: Text('Logout'),
-              onPressed: () async {
-                await FirebaseAuth.instance.signOut();
-                Navigator.pushReplacementNamed(context, '/login');
-              },
+              onPressed: _uploadProfileImage,
+              child: Text('Upload Profile Image'),
             ),
           ],
         ),

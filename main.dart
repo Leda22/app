@@ -4,10 +4,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/home_screen.dart';
-import 'screens/chef_home_screen.dart';
+
 import 'screens/profile_screen.dart';
 import 'screens/add_meal_screen.dart';
-import 'screens/add_recipe_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,10 +27,8 @@ class MyApp extends StatelessWidget {
         '/login': (context) => LoginScreen(),
         '/register': (context) => RegisterScreen(),
         '/home': (context) => HomeScreen(),
-        '/chef_home': (context) => ChefHomeScreen(),
         '/profile': (context) => ProfileScreen(),
         '/add_meal': (context) => AddMealScreen(),
-        '/add_recipe': (context) => AddRecipeScreen(),
       },
     );
   }
